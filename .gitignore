@@ -1,0 +1,12 @@
+node_modules/
+client/dist/
+client/dist-cvm/
+server/dist/
+.space-build/
+.space-build-cvm/
+app.db
+app.db-shm
+app.db-wal
+audits/
+.harness/
+.DS_Store

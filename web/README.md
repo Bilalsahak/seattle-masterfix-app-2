@@ -48,13 +48,37 @@ The repo-root version is the full server-backed app (Muse space, SQLite).
 This `web/` version is for an online test only — it is not the production
 system, and it must not be presented to clients as the live app.
 
-## Photos
+## Photos & logo
 
-The 8 project images here are navy/bronze SVG placeholders, labelled as
-such — no location is claimed for any of them. The real crew photos are
-binary files and are not in this repo. To use real photos, replace the
-`.svg` files in `web/src/assets/` with your own images of the same names
-and update the imports in `web/src/content.ts` / `web/src/App.tsx`.
+The 8 project images in `web/src/assets/` are the real crew photos
+(`hero.jpg`, `siding.jpg`, `fencing.jpg`, `tile.jpg`, `flooring.jpg`,
+`drywall.jpg`, `paint.jpg`, `remodel.jpg`) — real work by our crew,
+including completed jobs from other states. They are never labelled as
+Seattle jobs. The old navy SVG placeholders are still in the folder but
+are no longer imported anywhere.
+
+The header and About section use the real Seattle MasterFix logo
+(`web/src/assets/logo.svg` / `logo-on-navy.svg`, also copied to
+`web/public/logo.svg` as the site favicon and home-screen icon).
+Binary files (JPG/PNG) cannot be pushed with the GitHub MCP snapshot
+tool — upload them through the GitHub web UI (Add file → Upload files)
+if they are ever missing from the repo.
+
+## Design (redesigned 2026-11-20)
+
+Professional, simple, modern, phone-first. Navy #14293F / bronze
+#D79A43 / cream #F7F0E3, Inter with Instrument Serif headings.
+
+- Hero image slider: real photos (hero, siding, remodel, tile), auto-
+  advance every 5.5s, dots, arrows, touch swipe, slow zoom, pauses on
+  hover/touch, and respects `prefers-reduced-motion`.
+- Motion: fade/slide tab transitions, reveal-on-scroll sections, card
+  hover lifts, visible button press states, animated progress bars,
+  smooth FAQ accordion — CSS only, no animation library.
+- Interactive: projects as a swipeable snap-scroll carousel with a
+  full-screen viewer (prev/next, keyboard arrows, Esc to close, counter),
+  services as a horizontal snap-scroll row on phones, labelled
+  4-step estimate stepper with animated progress.
 
 ## Run it locally
 

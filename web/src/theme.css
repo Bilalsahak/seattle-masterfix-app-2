@@ -50,8 +50,80 @@
     min-height: 2.25rem;
   }
   body {
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     color: var(--text);
     background: var(--bg);
   }
+  h1, h2, h3 {
+    font-family: "Instrument Serif", Georgia, "Times New Roman", serif;
+    letter-spacing: 0.01em;
+  }
+  /* Visible focus for keyboard users. */
+  :focus-visible {
+    outline: 2px solid var(--color-bronze-dark);
+    outline-offset: 2px;
+  }
+}
+
+/* ---------- Motion system: small, fast, CSS-only ---------- */
+@keyframes fade-slide-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ken-burns {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}
+@keyframes hero-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.anim-fade-slide { animation: fade-slide-in 0.35s ease-out both; }
+.anim-slide-in { animation: slide-in-right 0.3s ease-out both; }
+
+/* Reveal-on-scroll: hidden until the section enters the viewport. */
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease-out, transform 0.5s ease-out; }
+.reveal-visible { opacity: 1; transform: translateY(0); }
+
+/* Hero slider: crossfading slides with a slow zoom on the active photo. */
+.hero-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.9s ease; pointer-events: none; }
+.hero-slide-active { opacity: 1; pointer-events: auto; }
+.hero-slide-active img { animation: ken-burns 7s ease-out both; }
+.hero-dot { transition: width 0.3s ease, background-color 0.3s ease; }
+
+/* Horizontal snap-scroll rows (services on phones, project carousel). */
+.snap-row { scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.snap-row::-webkit-scrollbar { display: none; }
+.snap-row > * { scroll-snap-align: start; }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Cards lift gently on hover; every button presses visibly. */
+.card-lift { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+.card-lift:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgb(20 41 63 / 0.14); }
+.pressable { transition: transform 0.12s ease, background-color 0.2s ease, border-color 0.2s ease; }
+.pressable:active { transform: scale(0.97); }
+
+/* Animated progress bars (estimate stepper, job progress). */
+.bar-anim { transition: width 0.45s ease, background-color 0.3s ease; }
+
+/* FAQ accordion: smooth open/close via grid rows. */
+.faq-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
+.faq-panel-open { grid-template-rows: 1fr; }
+.faq-panel > div { overflow: hidden; }
+
+/* Respect users who prefer less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-slide, .anim-slide-in { animation: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .hero-slide { transition: none; }
+  .hero-slide-active img { animation: none; }
+  .card-lift:hover { transform: none; }
+  .bar-anim { transition: none; }
+  .faq-panel { transition: none; }
 }

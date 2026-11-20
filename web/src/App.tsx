@@ -11,7 +11,9 @@ SERVICES,
 SERVICE_AREA,
 type ProjectPhoto,
 } from "./content";
-import heroImg from "./assets/hero.svg";
+import heroImg from "./assets/hero.jpg";
+import logoImg from "./assets/logo.svg";
+import logoOnNavyImg from "./assets/logo-on-navy.svg";
 
 type Job = ApiResponse<typeof api, "listJobs">["jobs"][number];
 type JobDetail = NonNullable<ApiResponse<typeof api, "getJob">["detail"]>;
@@ -50,6 +52,68 @@ const prettyDate = (d: string) => {
     ? d
     : parsed.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 };
+
+// ---------- Motion helpers (CSS only, no animation libraries) ----------
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const onChange = () => setReduced(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return reduced;
+}
+
+/** Reveal a section the first time it scrolls into view. */
+function Reveal({ children, className = "" }: { children: ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisible(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.12 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={`reveal ${visible ? "reveal-visible" : ""} ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+/** Minimal touch-swipe hook: returns handlers that call onLeft/onRight. */
+function useSwipe(onLeft: () => void, onRight: () => void) {
+  const startX = useRef<number | null>(null);
+  return {
+    onTouchStart: (e: React.TouchEvent) => {
+      startX.current = e.touches[0]?.clientX ?? null;
+    },
+    onTouchEnd: (e: React.TouchEvent) => {
+      if (startX.current === null) return;
+      const dx = (e.changedTouches[0]?.clientX ?? startX.current) - startX.current;
+      if (Math.abs(dx) > 48) {
+        if (dx < 0) onLeft();
+        else onRight();
+      }
+      startX.current = null;
+    },
+  };
+}
 
 // ---------- Icons (inline SVG, one line-icon style) ----------
 function Icon({ d, size = 22 }: { d: string; size?: number }) {
@@ -116,13 +180,13 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 const inputCls =
   "w-full rounded border border-[var(--border)] bg-white px-3 py-2 text-base text-charcoal min-h-11";
 const btnPrimary =
-  "inline-flex items-center justify-center gap-2 rounded bg-bronze px-5 py-3 font-semibold text-navy-deep min-h-12 w-full sm:w-auto hover:bg-bronze-dark transition-colors";
+  "pressable inline-flex items-center justify-center gap-2 rounded bg-bronze px-5 py-3 font-semibold text-navy-deep min-h-12 w-full sm:w-auto hover:bg-bronze-dark shadow-sm";
 const btnOutline =
-  "inline-flex items-center justify-center gap-2 rounded border-2 border-white/90 px-5 py-3 font-semibold text-white min-h-12 w-full sm:w-auto";
+  "pressable inline-flex items-center justify-center gap-2 rounded border-2 border-white/90 px-5 py-3 font-semibold text-white min-h-12 w-full sm:w-auto hover:bg-white/10";
 const btnNavy =
-  "inline-flex items-center justify-center gap-2 rounded bg-navy px-4 py-2.5 font-semibold text-white min-h-11 hover:bg-navy-deep transition-colors";
+  "pressable inline-flex items-center justify-center gap-2 rounded bg-navy px-4 py-2.5 font-semibold text-white min-h-11 hover:bg-navy-deep shadow-sm";
 const btnGhost =
-  "inline-flex items-center justify-center gap-2 rounded border border-navy/30 px-4 py-2.5 font-semibold text-navy min-h-11 bg-white";
+  "pressable inline-flex items-center justify-center gap-2 rounded border border-navy/30 px-4 py-2.5 font-semibold text-navy min-h-11 bg-white hover:border-bronze";
 
 function EmptyState({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
   return (
@@ -180,14 +244,17 @@ export function App() {
         <div className="mx-auto max-w-5xl px-4 py-3 flex items-center gap-3">
           <button
             type="button"
-            className="text-left min-h-11"
+            className="text-left min-h-11 flex items-center gap-2.5 shrink-0"
             onClick={() => goTab("home")}
             aria-label="Seattle MasterFix — go to Home"
           >
-            <span className="block font-bold tracking-wide leading-tight">
-              SEATTLE <span className="text-bronze">MASTERFIX</span>
+            <img src={logoImg} alt="Seattle MasterFix logo" className="h-10 w-10 shrink-0 object-contain" />
+            <span>
+              <span className="block font-bold tracking-wide leading-tight">
+                SEATTLE <span className="text-bronze">MASTERFIX</span>
+              </span>
+              <span className="block text-[11px] tracking-[0.2em] text-bronze-light">PRECISION CRAFTSMANSHIP</span>
             </span>
-            <span className="block text-[11px] tracking-[0.2em] text-bronze-light">PRECISION CRAFTSMANSHIP</span>
           </button>
           <span className="h-px flex-1 bg-bronze/40 self-end mb-1 hidden sm:block" aria-hidden="true" />
           <div className="ml-auto flex items-center gap-1">
@@ -217,6 +284,7 @@ export function App() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4">
+        <div key={`${route.name}-${route.name === "tabs" ? tab : ""}`} className="anim-fade-slide">
         {route.name === "service" && (
           <ServiceDetail slug={route.slug} onBack={() => goTab("services")} onEstimate={() => go({ name: "estimate" })} />
         )}
@@ -236,11 +304,15 @@ export function App() {
         {route.name === "tabs" && tab === "more" && (
           <MoreTab onOffice={() => go({ name: "office" })} onEstimate={() => go({ name: "estimate" })} />
         )}
+        </div>
       </main>
 
       <footer className="mx-auto max-w-5xl px-4 mt-10 pb-4 text-sm text-charcoal/70">
         <div className="border-t border-bronze/40 pt-4">
-          <p className="font-semibold text-navy">{COMPANY.name} — {COMPANY.tagline}</p>
+          <div className="flex items-center gap-3">
+            <img src={logoOnNavyImg} alt="Seattle MasterFix logo" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+            <p className="font-semibold text-navy">{COMPANY.name} — {COMPANY.tagline}</p>
+          </div>
           <p>{COMPANY.address} · {COMPANY.phoneDisplay}</p>
           <p>WA Contractor Reg. {COMPANY.waReg} · UBI {COMPANY.ubi} · 1-year labor warranty</p>
         </div>
@@ -271,6 +343,101 @@ export function App() {
   );
 }
 
+
+// ---------- Hero slider: real crew photos, auto-advance, swipe, dots, arrows ----------
+const HERO_SLIDES = [
+  { image: heroImg, alt: "Craftsman home with cedar shake siding by Seattle MasterFix trades", caption: "Cedar shake siding", sub: "Full exterior re-side, trim, and stone foundation work." },
+  { image: SERVICES.find((x) => x.slug === "siding")?.image ?? heroImg, alt: "Craftsman home with cedar shingle siding and white trim", caption: "Shingle siding & trim", sub: "Cedar shingles with new white trim and porch detailing." },
+  { image: SERVICES.find((x) => x.slug === "remodel")?.image ?? heroImg, alt: "Remodeled kitchen with new cabinetry and countertops", caption: "Kitchen build-out", sub: "Cabinet and countertop installation with full finish work." },
+  { image: SERVICES.find((x) => x.slug === "tile")?.image ?? heroImg, alt: "Walk-in shower with stacked wall tile, bench, and mosaic floor", caption: "Tiled walk-in shower", sub: "Waterproofed shower with bench, niche, and mosaic floor." },
+];
+
+function HeroSlider({ onEstimate, onTrack }: { onEstimate: () => void; onTrack: () => void }) {
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const reduced = useReducedMotion();
+  const total = HERO_SLIDES.length;
+  const next = () => setIndex((i) => (i + 1) % total);
+  const prev = () => setIndex((i) => (i - 1 + total) % total);
+  const swipe = useSwipe(next, prev);
+
+  useEffect(() => {
+    if (paused || reduced) return;
+    const t = window.setInterval(next, 5500);
+    return () => window.clearInterval(t);
+  }, [paused, reduced]);
+
+  const slide = HERO_SLIDES[index]!;
+  return (
+    <section
+      className="relative -mx-4 mt-0 overflow-hidden"
+      aria-roledescription="carousel"
+      aria-label="Featured project photos"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      {...swipe}
+    >
+      <div className="relative h-80 sm:h-[26rem]">
+        {HERO_SLIDES.map((s, i) => (
+          <div key={s.caption} className={`hero-slide ${i === index ? "hero-slide-active" : ""}`} aria-hidden={i !== index}>
+            <img src={s.image} alt={i === index ? s.alt : ""} className="w-full h-full object-cover" loading={i === 0 ? "eager" : "lazy"} />
+          </div>
+        ))}
+        <div className="absolute inset-0 bg-navy/55" aria-hidden="true" />
+        <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-6 max-w-5xl mx-auto w-full">
+          <p key={`cap-${index}`} className="anim-fade-slide text-bronze-light text-xs font-bold tracking-[0.18em] uppercase">
+            {slide.caption}
+          </p>
+          <h1 className="text-white text-2xl sm:text-4xl font-bold leading-tight">
+            Licensed remodeling, done right — and easy to follow.
+          </h1>
+          <p className="text-white/90 mt-2 max-w-xl">{slide.sub}</p>
+          <p className="text-white/80 mt-1 max-w-xl text-sm">
+            Siding, fencing, tile, flooring, drywall, paint, and build-outs across Seattle and King County.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 mt-4 pb-2">
+            <button type="button" className={btnPrimary} onClick={onEstimate}>
+              Request a Free Estimate
+            </button>
+            <button type="button" className={btnOutline} onClick={onTrack}>
+              Track My Job
+            </button>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={prev}
+          aria-label="Previous photo"
+          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-navy/70 text-white w-10 h-10 inline-flex items-center justify-center pressable"
+        >
+          <Icon d={I.back} size={20} />
+        </button>
+        <button
+          type="button"
+          onClick={next}
+          aria-label="Next photo"
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-navy/70 text-white w-10 h-10 inline-flex items-center justify-center pressable"
+        >
+          <Icon d={I.chevR} size={20} />
+        </button>
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5" role="tablist" aria-label="Choose a photo">
+          {HERO_SLIDES.map((s, i) => (
+            <button
+              key={s.caption}
+              type="button"
+              role="tab"
+              aria-selected={i === index}
+              aria-label={`Photo ${i + 1}: ${s.caption}`}
+              onClick={() => setIndex(i)}
+              className={`hero-dot h-2 rounded-full ${i === index ? "w-6 bg-bronze" : "w-2 bg-white/60 hover:bg-white"}`}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ---------- Home ----------
 function HomeTab({
   onEstimate,
@@ -285,26 +452,8 @@ function HomeTab({
 }) {
   return (
     <div>
-      <section className="relative -mx-4 mt-0">
-        <img src={heroImg} alt="Craftsman home with cedar shake siding by Seattle MasterFix trades" className="w-full h-72 sm:h-96 object-cover" />
-        <div className="absolute inset-0 bg-navy/55" aria-hidden="true" />
-        <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-6 max-w-5xl mx-auto w-full">
-          <h1 className="text-white text-2xl sm:text-4xl font-bold leading-tight">
-            Licensed remodeling, done right — and easy to follow.
-          </h1>
-          <p className="text-white/90 mt-2 max-w-xl">
-            Siding, fencing, tile, flooring, drywall, paint, and build-outs across Seattle and King County.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 mt-4 pb-2">
-            <button type="button" className={btnPrimary} onClick={onEstimate}>
-              Request a Free Estimate
-            </button>
-            <button type="button" className={btnOutline} onClick={onTrack}>
-              Track My Job
-            </button>
-          </div>
-        </div>
-      </section>
+      <HeroSlider onEstimate={onEstimate} onTrack={onTrack} />
+      <Reveal>
 
       <section aria-label="Why homeowners trust us" className="bg-navy text-white rounded-lg mt-4 px-4 py-3">
         <ul className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm font-medium">
@@ -313,27 +462,30 @@ function HomeTab({
           <li className="flex items-center gap-2"><span className="text-bronze"><Icon d={I.check} size={20} /></span> 1-year labor warranty</li>
         </ul>
       </section>
+      </Reveal>
+      <Reveal>
 
       <SectionTitle>Our services</SectionTitle>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+      <p className="text-sm text-charcoal/60 -mt-2 mb-2 sm:hidden">Swipe to see all seven trades →</p>
+      <div className="snap-row flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:overflow-visible">
         {SERVICES.map((s) => (
           <button
             key={s.slug}
             type="button"
             onClick={() => onService(s.slug)}
-            className="text-left rounded-lg border border-[var(--border)] bg-white overflow-hidden hover:border-bronze transition-colors"
+            className="card-lift shrink-0 w-64 sm:w-auto text-left rounded-lg border border-[var(--border)] bg-white overflow-hidden hover:border-bronze"
           >
-            <img src={s.image} alt={s.imageAlt} className="w-full h-28 sm:h-36 object-cover" loading="lazy" />
+            <img src={s.image} alt={s.imageAlt} className="w-full h-36 sm:h-36 object-cover" loading="lazy" />
             <span className="block p-3">
               <span className="block font-semibold text-navy">{s.name}</span>
               <span className="block text-sm text-charcoal/75 mt-0.5 line-clamp-2">{s.short}</span>
             </span>
           </button>
         ))}
-        <div className="rounded-lg bg-navy text-white p-4 flex flex-col justify-between">
+        <div className="card-lift shrink-0 w-64 sm:w-auto rounded-lg bg-navy text-white p-4 flex flex-col justify-between">
           <p className="font-semibold">Not sure what your project needs?</p>
           <p className="text-sm text-white/80 mt-1">Send an estimate request with photos — we will tell you honestly what the work involves.</p>
-          <button type="button" className="mt-3 rounded bg-bronze px-4 py-2.5 font-semibold text-navy-deep min-h-11" onClick={onEstimate}>
+          <button type="button" className="pressable mt-3 rounded bg-bronze px-4 py-2.5 font-semibold text-navy-deep min-h-11" onClick={onEstimate}>
             Request Estimate
           </button>
         </div>
@@ -342,7 +494,7 @@ function HomeTab({
       <SectionTitle>Recent project photos</SectionTitle>
       <div className="grid grid-cols-3 gap-2">
         {PROJECTS.slice(0, 3).map((p) => (
-          <button key={p.title} type="button" onClick={onProjects} className="rounded-lg overflow-hidden border border-[var(--border)]" aria-label={`See project photos — ${p.title}`}>
+          <button key={p.title} type="button" onClick={onProjects} className="card-lift rounded-lg overflow-hidden border border-[var(--border)]" aria-label={`See project photos — ${p.title}`}>
             <img src={p.image} alt={p.alt} className="w-full h-24 sm:h-36 object-cover" loading="lazy" />
           </button>
         ))}
@@ -383,6 +535,7 @@ function HomeTab({
           </a>
         </div>
       </div>
+      </Reveal>
     </div>
   );
 }
@@ -399,7 +552,7 @@ function ServicesTab({ onService }: { onService: (slug: string) => void }) {
             key={s.slug}
             type="button"
             onClick={() => onService(s.slug)}
-            className="w-full text-left rounded-lg border border-[var(--border)] bg-white overflow-hidden flex hover:border-bronze transition-colors"
+            className="card-lift w-full text-left rounded-lg border border-[var(--border)] bg-white overflow-hidden flex hover:border-bronze"
           >
             <img src={s.image} alt={s.imageAlt} className="w-28 sm:w-44 shrink-0 object-cover" loading="lazy" />
             <span className="p-3 sm:p-4">
@@ -417,7 +570,7 @@ function ServiceDetail({ slug, onBack, onEstimate }: { slug: string; onBack: () 
   const s = SERVICES.find((x) => x.slug === slug) ?? SERVICES[0]!;
   const related = PROJECTS.filter((p) => p.service === s.name || (s.slug === "flooring" && p.service === "Flooring"));
   return (
-    <div className="pb-20">
+    <div className="pb-20 anim-slide-in">
       <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-navy font-semibold mt-4 min-h-11" aria-label="Back to services">
         <Icon d={I.back} size={18} /> Services
       </button>
@@ -459,7 +612,7 @@ function ServiceDetail({ slug, onBack, onEstimate }: { slug: string; onBack: () 
           <SectionTitle>Related project photos</SectionTitle>
           <div className="grid grid-cols-2 gap-2">
             {related.map((p) => (
-              <figure key={p.title} className="rounded-lg overflow-hidden border border-[var(--border)] bg-white">
+              <figure key={p.title} className="card-lift rounded-lg overflow-hidden border border-[var(--border)] bg-white">
                 <img src={p.image} alt={p.alt} className="w-full h-32 object-cover" loading="lazy" />
                 <figcaption className="p-2 text-sm font-medium text-navy">{p.title}</figcaption>
               </figure>
@@ -485,20 +638,34 @@ function ServiceDetail({ slug, onBack, onEstimate }: { slug: string; onBack: () 
 // ---------- Projects ----------
 function ProjectsTab() {
   const [filter, setFilter] = useState("All");
-  const [open, setOpen] = useState<ProjectPhoto | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const shown = filter === "All" ? PROJECTS : PROJECTS.filter((p) => p.service === filter);
+  const open = openIndex !== null ? shown[openIndex] ?? null : null;
+  const openPrev = () => setOpenIndex((i) => (i === null ? i : (i - 1 + shown.length) % shown.length));
+  const openNext = () => setOpenIndex((i) => (i === null ? i : (i + 1) % shown.length));
+  const viewerSwipe = useSwipe(openNext, openPrev);
+  useEffect(() => {
+    if (openIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") openPrev();
+      if (e.key === "ArrowRight") openNext();
+      if (e.key === "Escape") setOpenIndex(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [openIndex, shown.length]);
   return (
     <div>
       <h1 className="text-2xl font-bold text-navy mt-5">Projects</h1>
-      <p className="text-charcoal/80 mt-1">Real work by our crew. Tap a photo for the scope.</p>
-      <div className="flex flex-wrap gap-2 mt-4" role="group" aria-label="Filter projects by service">
+      <p className="text-charcoal/80 mt-1">Real work by our crew. Swipe through the photos, or tap one for the full scope.</p>
+      <div className="flex gap-2 mt-4 overflow-x-auto no-scrollbar pb-1" role="group" aria-label="Filter projects by service">
         {PROJECT_FILTERS.map((f) => (
           <button
             key={f}
             type="button"
             onClick={() => setFilter(f)}
             aria-pressed={filter === f}
-            className={`rounded-full px-4 py-2 text-sm font-semibold min-h-10 border ${filter === f ? "bg-navy text-white border-navy" : "bg-white text-navy border-navy/30"}`}
+            className={`pressable shrink-0 rounded-full px-4 py-2 text-sm font-semibold min-h-10 border ${filter === f ? "bg-navy text-white border-navy" : "bg-white text-navy border-navy/30"}`}
           >
             {f}
           </button>
@@ -507,36 +674,49 @@ function ProjectsTab() {
       {shown.length === 0 ? (
         <EmptyState title="No photos in this category yet" body="We add project photos as jobs are completed. Ask us about similar work on your estimate visit." />
       ) : (
-        <div className="columns-2 lg:columns-3 gap-3 mt-4 [&>figure]:mb-3">
-          {shown.map((p) => (
-            <figure key={p.title} className="break-inside-avoid rounded-lg overflow-hidden border border-[var(--border)] bg-white">
-              <button type="button" onClick={() => setOpen(p)} className="block w-full" aria-label={`View photo: ${p.title}`}>
-                <img src={p.image} alt={p.alt} className="w-full object-cover" loading="lazy" />
+        <div className="snap-row flex gap-3 overflow-x-auto mt-4 pb-2" aria-label="Project photos — swipe to browse">
+          {shown.map((p, i) => (
+            <figure key={p.title} className="card-lift shrink-0 w-72 sm:w-80 snap-start rounded-lg overflow-hidden border border-[var(--border)] bg-white">
+              <button type="button" onClick={() => setOpenIndex(i)} className="block w-full" aria-label={`View photo: ${p.title}`}>
+                <img src={p.image} alt={p.alt} className="w-full h-48 sm:h-56 object-cover" loading="lazy" />
               </button>
-              <figcaption className="p-2.5">
+              <figcaption className="p-3">
                 <span className="font-semibold text-navy text-sm">{p.title}</span>
-                <span className="block text-xs text-charcoal/65">{p.service}</span>
+                <span className="block text-xs text-charcoal/65">{p.service} · {p.scope}</span>
               </figcaption>
             </figure>
           ))}
         </div>
       )}
+      <p className="text-sm text-charcoal/60 mt-1">{shown.length} photo{shown.length === 1 ? "" : "s"}{filter !== "All" ? ` · ${filter}` : ""} — swipe to browse</p>
       <p className="text-xs text-charcoal/60 mt-4">
         Photo locations are labeled honestly: our photo library includes completed crew work from other states as well as Seattle-area jobs. We never label an out-of-state job as a Seattle job.
       </p>
 
-      {open && (
-        <div className="fixed inset-0 z-40 bg-navy-deep/90 flex flex-col" role="dialog" aria-modal="true" aria-label={open.title}>
+      {open && openIndex !== null && (
+        <div className="fixed inset-0 z-40 bg-navy-deep/95 flex flex-col anim-fade-slide" role="dialog" aria-modal="true" aria-label={open.title} {...viewerSwipe}>
           <div className="flex items-center justify-between p-4 text-white">
             <p className="font-semibold">{open.title}</p>
-            <button type="button" onClick={() => setOpen(null)} className="p-2 min-h-11 min-w-11 inline-flex items-center justify-center" aria-label="Close photo viewer">
-              <Icon d={I.x} />
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-white/70">{openIndex + 1} / {shown.length}</span>
+              <button type="button" onClick={() => setOpenIndex(null)} className="p-2 min-h-11 min-w-11 inline-flex items-center justify-center pressable" aria-label="Close photo viewer">
+                <Icon d={I.x} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0 relative flex items-center">
+            <button type="button" onClick={openPrev} aria-label="Previous photo" className="absolute left-2 z-10 rounded-full bg-white/15 text-white w-11 h-11 inline-flex items-center justify-center pressable">
+              <Icon d={I.back} size={22} />
+            </button>
+            <img key={open.title} src={open.image} alt={open.alt} className="flex-1 min-h-0 w-full h-full object-contain anim-fade-slide" />
+            <button type="button" onClick={openNext} aria-label="Next photo" className="absolute right-2 z-10 rounded-full bg-white/15 text-white w-11 h-11 inline-flex items-center justify-center pressable">
+              <Icon d={I.chevR} size={22} />
             </button>
           </div>
-          <img src={open.image} alt={open.alt} className="flex-1 min-h-0 w-full object-contain" />
           <div className="p-4 text-white">
             <Badge tone="bronze">{open.service}</Badge>
             <p className="mt-2 text-white/90">{open.scope}</p>
+            <p className="mt-1 text-xs text-white/60">Swipe, use the arrows, or tap the dots — Esc closes.</p>
           </div>
         </div>
       )}
@@ -641,15 +821,31 @@ function EstimateWizard({ onDone, onCancel }: { onDone: () => void; onCancel: ()
       <h1 className="text-2xl font-bold text-navy">Request a free estimate</h1>
       <p className="text-charcoal/75 mt-1">Four short steps — most people finish in under three minutes.</p>
 
-      <div className="flex items-center gap-2 mt-4" aria-label={`Step ${step} of 4`}>
-        {[1, 2, 3, 4].map((n) => (
-          <span key={n} className={`h-2 flex-1 rounded ${n <= step ? "bg-bronze" : "bg-stone-300"}`} aria-hidden="true" />
-        ))}
-        <span className="text-sm font-semibold text-navy ml-1">Step {step} of 4</span>
+      <div className="mt-4" aria-label={`Step ${step} of 4`}>
+        <div className="flex items-center gap-2">
+          {[1, 2, 3, 4].map((n) => (
+            <button
+              key={n}
+              type="button"
+              disabled={n > step}
+              onClick={() => n < step && setStep(n)}
+              aria-label={`Go to step ${n}: ${["Service", "The work", "Photos", "Contact"][n - 1]}`}
+              className={`bar-anim h-2 flex-1 rounded ${n < step ? "bg-navy" : n === step ? "bg-bronze" : "bg-stone-300"}`}
+            />
+          ))}
+          <span className="text-sm font-semibold text-navy ml-1">Step {step} of 4</span>
+        </div>
+        <ol className="flex gap-2 mt-1.5">
+          {["Service", "The work", "Photos", "Contact"].map((label, i) => (
+            <li key={label} className={`flex-1 text-[11px] leading-tight ${i + 1 === step ? "font-bold text-navy" : i + 1 < step ? "text-navy/80" : "text-charcoal/50"}`}>
+              {i + 1}. {label}
+            </li>
+          ))}
+        </ol>
       </div>
 
       {step === 1 && (
-        <section className="mt-5" aria-label="Step 1: the service">
+        <section key={`step-${step}`} className="mt-5 anim-fade-slide" aria-label="Step 1: the service">
           <h2 className="font-semibold text-navy text-lg mb-2">What do you need done?</h2>
           <div className="flex flex-wrap gap-2" role="group" aria-label="Choose one or more services">
             {SERVICES.map((s) => (
@@ -687,7 +883,7 @@ function EstimateWizard({ onDone, onCancel }: { onDone: () => void; onCancel: ()
       )}
 
       {step === 2 && (
-        <section className="mt-5" aria-label="Step 2: the work">
+        <section key={`step-${step}`} className="mt-5 anim-fade-slide" aria-label="Step 2: the work">
           <h2 className="font-semibold text-navy text-lg mb-2">Tell us about the work</h2>
           <Field label="Describe the work in plain English">
             <textarea className={`${inputCls} min-h-28`} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Example: Water damage in the living room ceiling and one wall — about 120 sq ft needs patching, texture match, prime, and paint." />
@@ -721,7 +917,7 @@ function EstimateWizard({ onDone, onCancel }: { onDone: () => void; onCancel: ()
       )}
 
       {step === 3 && (
-        <section className="mt-5" aria-label="Step 3: photos">
+        <section key={`step-${step}`} className="mt-5 anim-fade-slide" aria-label="Step 3: photos">
           <h2 className="font-semibold text-navy text-lg mb-2">Add photos (up to 5)</h2>
           <p className="text-sm text-charcoal/75 mb-3">Photos of the area help us prepare for the site visit. Camera or photo library both work.</p>
           <input
@@ -758,7 +954,7 @@ function EstimateWizard({ onDone, onCancel }: { onDone: () => void; onCancel: ()
       )}
 
       {step === 4 && (
-        <section className="mt-5" aria-label="Step 4: contact and review">
+        <section key={`step-${step}`} className="mt-5 anim-fade-slide" aria-label="Step 4: contact and review">
           <h2 className="font-semibold text-navy text-lg mb-2">Your contact details</h2>
           <Field label="Full name">
             <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
@@ -843,7 +1039,7 @@ function JobCard({ job, onOpen }: { job: Job; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="w-full text-left rounded-lg border border-[var(--border)] bg-white p-4 hover:border-bronze transition-colors"
+      className="card-lift w-full text-left rounded-lg border border-[var(--border)] bg-white p-4 hover:border-bronze"
     >
       <span className="flex items-start justify-between gap-3">
         <span className="font-semibold text-navy text-lg leading-snug">{job.title}</span>
@@ -866,7 +1062,7 @@ function JobCard({ job, onOpen }: { job: Job; onOpen: () => void }) {
             <span className="font-semibold text-navy">{pct}%</span>
           </span>
           <span className="block h-2.5 rounded bg-stone-200 overflow-hidden">
-            <span className="block h-full bg-bronze" style={{ width: `${pct}%` }} />
+            <span className="bar-anim block h-full bg-bronze" style={{ width: `${pct}%` }} />
           </span>
         </span>
       )}
@@ -1709,6 +1905,13 @@ function MoreTab({ onOffice, onEstimate }: { onOffice: () => void; onEstimate: (
 
       <SectionTitle>About Seattle MasterFix</SectionTitle>
       <div className="rounded-lg border border-[var(--border)] bg-white p-4 space-y-2">
+        <div className="flex items-center gap-3 pb-1">
+          <img src={logoOnNavyImg} alt="Seattle MasterFix logo" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+          <div>
+            <p className="font-bold text-navy leading-tight">SEATTLE <span className="text-bronze-dark">MASTERFIX</span></p>
+            <p className="text-[11px] tracking-[0.2em] text-charcoal/60">PRECISION CRAFTSMANSHIP</p>
+          </div>
+        </div>
         <p>
           Seattle MasterFix Precision Craftsmanship is a licensed home remodeling company serving Seattle and King County —
           siding, fencing, tile, laminate flooring, drywall, interior and exterior paint, and remodel build-outs.
@@ -1738,7 +1941,9 @@ function MoreTab({ onOffice, onEstimate }: { onOffice: () => void; onEstimate: (
               {f.q}
               <span aria-hidden="true">{openFaq === i ? "−" : "+"}</span>
             </button>
-            {openFaq === i && <p className="px-4 pb-4 text-charcoal/85">{f.a}</p>}
+            <div className={`faq-panel ${openFaq === i ? "faq-panel-open" : ""}`} aria-hidden={openFaq !== i}>
+              <div><p className="px-4 pb-4 text-charcoal/85">{f.a}</p></div>
+            </div>
           </div>
         ))}
       </div>

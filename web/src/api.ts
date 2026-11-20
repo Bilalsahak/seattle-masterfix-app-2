@@ -203,6 +203,81 @@ function dataUrl(mime: string, base64: string): string | null {
   return `data:${mime};base64,${base64}`;
 }
 
+// Formspree — the SAME public endpoint the production website uses
+// (src/config/site.ts in Bilalsahak/probuild-clone). Estimate requests are
+// posted here as multipart FormData so Bill gets them by email, exactly like
+// a website estimate. File uploads are a paid Formspree feature — if the
+// plan does not include them the text still goes through; photos are never
+// the only copy, the request is always saved in the app first.
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/xnjeedlb";
+
+async function sendToFormspree(args: {
+  reference: string;
+  name: string;
+  phone: string;
+  email: string;
+  preferred_contact: string;
+  services: string[];
+  property_type: string;
+  address: string;
+  zip: string;
+  description: string;
+  areas: string;
+  approx_size: string;
+  timing: string;
+  heard_about: string;
+  visit_times: string;
+  photo_count: number;
+  photos: File[];
+}): Promise<boolean> {
+  try {
+    const serviceNames: Record<string, string> = {
+      siding: "Siding",
+      fencing: "Fencing",
+      tile: "Tile",
+      flooring: "Laminate Flooring",
+      drywall: "Drywall",
+      paint: "Interior / Exterior Paint",
+      remodel: "Remodel Build-Outs",
+    };
+    const payload = new FormData();
+    const fields: Record<string, string> = {
+      _subject: `App estimate request ${args.reference} — ${args.services.map((s) => serviceNames[s] ?? s).join(", ")}`,
+      _replyto: args.email,
+      reference: args.reference,
+      source: "Seattle MasterFix App (GitHub Pages)",
+      name: args.name,
+      email: args.email,
+      phone: args.phone,
+      preferred_contact: args.preferred_contact,
+      projectTypes: args.services.map((s) => serviceNames[s] ?? s).join(", "),
+      propertyType: args.property_type,
+      address: args.address,
+      zip: args.zip,
+      details: args.description,
+      areas: args.areas,
+      approxSize: args.approx_size,
+      timeline: args.timing,
+      heardAbout: args.heard_about,
+      visitTimes: args.visit_times,
+      photoCount: String(args.photo_count),
+      pageUrl: typeof window !== "undefined" ? window.location.href : "",
+    };
+    for (const [key, value] of Object.entries(fields)) payload.append(key, value);
+    for (const file of args.photos.slice(0, 5)) {
+      if (file.size <= 25 * 1024 * 1024) payload.append("photos", file);
+    }
+    const res = await fetch(FORMSPREE_ENDPOINT, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      body: payload,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export const api = {
   async submitEstimateRequest(args: {
     name: string;
@@ -220,7 +295,8 @@ export const api = {
     heard_about: string;
     visit_times: string;
     photo_count: number;
-  }): Promise<{ id: number; reference: string }> {
+    photos?: File[];
+  }): Promise<{ id: number; reference: string; formspree_ok: boolean }> {
     const store = load();
     const id = nextId(store, "requests");
     const t = isoNow();
@@ -248,7 +324,11 @@ export const api = {
     const reference = `SMF-REQ-${id}`;
     notify(store, "request_received", "Estimate request received", `${args.name} — reference ${reference}. We usually reply within 1 hour during business hours.`, null);
     save(store);
-    return { id, reference };
+    // Email the request to the office via Formspree (same endpoint as the
+    // website). The local save above already happened, so a Formspree
+    // failure never loses the request — it is reported to the user instead.
+    const formspreeOk = await sendToFormspree({ ...args, reference, photos: args.photos ?? [] });
+    return { id, reference, formspree_ok: formspreeOk };
   },
 
   async listEstimateRequests(args: { limit: number }): Promise<{ requests: EstimateRequest[] }> {

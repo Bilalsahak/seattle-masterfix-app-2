@@ -241,7 +241,7 @@ export function App() {
 
   return (
     <div className="min-h-dvh bg-cream pb-24">
-      <header className="bg-navy text-white sticky top-0 z-30 shadow">
+      <header className="bg-navy text-white sticky top-0 z-30 shadow pt-[env(safe-area-inset-top)]">
         <div className="mx-auto max-w-5xl px-4 py-3 flex items-center gap-3">
           <button
             type="button"
@@ -311,7 +311,7 @@ export function App() {
       <footer className="mx-auto max-w-5xl px-4 mt-10 pb-4 text-sm text-charcoal/70">
         <div className="border-t border-bronze/40 pt-4">
           <div className="flex items-center gap-3">
-            <img src={logoOnNavyImg} alt="Seattle MasterFix logo" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+            <img src={logoOnNavyImg} alt="Seattle MasterFix logo" className="h-12 w-12 shrink-0 rounded-lg object-contain bg-navy p-1" />
             <p className="font-semibold text-navy">{COMPANY.name} — {COMPANY.tagline}</p>
           </div>
           <p>{COMPANY.address} · {COMPANY.phoneDisplay}</p>
@@ -384,7 +384,7 @@ function HeroSlider({ onEstimate, onTrack }: { onEstimate: () => void; onTrack: 
             <img src={s.image} alt={i === index ? s.alt : ""} className="w-full h-full object-cover" loading={i === 0 ? "eager" : "lazy"} />
           </div>
         ))}
-        <div className="absolute inset-0 bg-navy/55" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/35 to-transparent" aria-hidden="true" />
         <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-6 max-w-5xl mx-auto w-full">
           <p key={`cap-${index}`} className="anim-fade-slide text-bronze-light text-xs font-bold tracking-[0.18em] uppercase">
             {slide.caption}
@@ -421,7 +421,7 @@ function HeroSlider({ onEstimate, onTrack }: { onEstimate: () => void; onTrack: 
         >
           <Icon d={I.chevR} size={20} />
         </button>
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5" role="tablist" aria-label="Choose a photo">
+        <div className="absolute top-3 right-3 flex items-center gap-1.5" role="tablist" aria-label="Choose a photo">
           {HERO_SLIDES.map((s, i) => (
             <button
               key={s.caption}
@@ -739,7 +739,7 @@ function EstimateWizard({ onDone, onCancel }: { onDone: () => void; onCancel: ()
   const [approxSize, setApproxSize] = useState("");
   const [timing, setTiming] = useState("");
   const [heardAbout, setHeardAbout] = useState("");
-  const [photos, setPhotos] = useState<{ name: string; url: string }[]>([]);
+  const [photos, setPhotos] = useState<{ name: string; url: string; file: File }[]>([]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -747,7 +747,7 @@ function EstimateWizard({ onDone, onCancel }: { onDone: () => void; onCancel: ()
   const [visitTimes, setVisitTimes] = useState("");
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState("");
-  const [submitted, setSubmitted] = useState<{ reference: string } | null>(null);
+  const [submitted, setSubmitted] = useState<{ reference: string; formspreeOk?: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const outOfArea = zip.trim().length >= 3 && !KING_COUNTY_ZIPS_3.includes(zip.trim().slice(0, 3));
@@ -770,8 +770,9 @@ function EstimateWizard({ onDone, onCancel }: { onDone: () => void; onCancel: ()
         heard_about: heardAbout,
         visit_times: visitTimes,
         photo_count: photos.length,
+        photos: photos.map((p) => p.file),
       }),
-    onSuccess: (res) => setSubmitted({ reference: res.reference }),
+    onSuccess: (res) => setSubmitted({ reference: res.reference, formspreeOk: res.formspree_ok }),
     onError: (e) => setError(e instanceof Error ? e.message : "Submission failed. Please call us instead."),
   });
 
@@ -783,7 +784,7 @@ function EstimateWizard({ onDone, onCancel }: { onDone: () => void; onCancel: ()
     const next = [...photos];
     for (const f of Array.from(files)) {
       if (next.length >= 5) break;
-      next.push({ name: f.name, url: URL.createObjectURL(f) });
+      next.push({ name: f.name, url: URL.createObjectURL(f), file: f });
     }
     setPhotos(next);
   };
@@ -800,6 +801,11 @@ function EstimateWizard({ onDone, onCancel }: { onDone: () => void; onCancel: ()
             <li><strong>2.</strong> We contact you to schedule a free site visit — {COMPANY.replyNote}</li>
             <li><strong>3.</strong> You receive a written, signable estimate. No price is ever quoted before that estimate.</li>
           </ol>
+          {submitted.formspreeOk === false && (
+            <p className="text-sm font-medium text-red-800 bg-red-50 border border-red-200 rounded-lg p-3 mt-4" role="alert">
+              Saved in the app, but the email to our office did not go through — please call us at {COMPANY.phoneDisplay} so we do not miss it.
+            </p>
+          )}
           <p className="text-sm text-charcoal/70 mt-4">
             Your request also appears in the My Job tab, where its status updates as we work through it.
           </p>
@@ -1906,9 +1912,9 @@ function MoreTab({ onOffice, onEstimate }: { onOffice: () => void; onEstimate: (
 
       <SectionTitle>About Seattle MasterFix</SectionTitle>
       <div className="rounded-lg border border-[var(--border)] bg-white p-4 space-y-2">
-        <img src={logoFullImg} alt="Seattle MasterFix — Precision Craftsmanship" className="w-full rounded-lg" />
+        <img src={logoFullImg} alt="Seattle MasterFix — Precision Craftsmanship" className="w-full h-auto rounded-lg object-contain bg-navy p-3" />
         <div className="flex items-center gap-3 pb-1">
-          <img src={logoOnNavyImg} alt="Seattle MasterFix logo" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+          <img src={logoOnNavyImg} alt="Seattle MasterFix logo" className="h-14 w-14 shrink-0 rounded-lg object-contain bg-navy p-1" />
           <div>
             <p className="font-bold text-navy leading-tight">SEATTLE <span className="text-bronze-dark">MASTERFIX</span></p>
             <p className="text-[11px] tracking-[0.2em] text-charcoal/60">PRECISION CRAFTSMANSHIP</p>

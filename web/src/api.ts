@@ -94,7 +94,7 @@ export const api = {
     if (error) throw new Error(error.message);
   },
   async verifyCode(email: string, token: string): Promise<void> {
-    const { error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: token.trim(), type: "email" });
+    const { error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: token.replace(/\D/g, "").slice(0, 6), type: "email" });
     if (error) throw new Error(error.message);
   },
   async signOut(): Promise<void> {
@@ -186,7 +186,7 @@ export const api = {
   async updateJob(jobId: number, patch: Partial<Job>): Promise<void> {
     check(await supabase.from("jobs").update(patch).eq("id", jobId));
   },
-  /** Emails the client a sign-in link so they can open their job. */
+  /** Emails the client a 6-digit sign-in code (and a link) so they can open their job. */
   async inviteClient(email: string): Promise<void> {
     const { error } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase(), options: { emailRedirectTo: APP_URL, shouldCreateUser: true } });
     if (error) throw new Error(error.message);

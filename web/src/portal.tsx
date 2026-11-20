@@ -30,13 +30,18 @@ function Card({ children, className = "" }: { children: ReactNode; className?: s
   return <div className={`rounded-lg border border-[var(--border)] bg-white p-4 ${className}`}>{children}</div>;
 }
 
-// ---------- Sign in (email link or 6-digit code) ----------
+// ---------- Sign in (6-digit email code — stays in the installed app) ----------
 export function SignInCard({ title = "Sign in to see your job" }: { title?: string }) {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
   const send = useMutation({ mutationFn: () => api.sendLoginLink(email), onSuccess: () => setSent(true) });
-  const verify = useMutation({ mutationFn: () => api.verifyCode(email, code) });
+  const verify = useMutation({ mutationFn: (token: string) => api.verifyCode(email, token) });
+  const onCode = (raw: string) => {
+    const v = raw.replace(/\D/g, "").slice(0, 6);
+    setCode(v);
+    if (v.length === 6 && !verify.isPending) verify.mutate(v);
+  };
   return (
     <Card className="mt-5">
       <h2 className="text-lg font-semibold text-navy">{title}</h2>
@@ -48,33 +53,49 @@ export function SignInCard({ title = "Sign in to see your job" }: { title?: stri
             send.mutate();
           }}
         >
-          <p className="text-sm text-charcoal/80 mb-3">No password needed. Use the email you gave us for your estimate — we’ll send you a sign-in link.</p>
+          <p className="text-sm text-charcoal/80 mb-3">No password needed. Use the email you gave us for your estimate — we’ll email you a 6-digit code.</p>
           <Field label="Email">
             <input className={inputCls} type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
           {send.error && <ErrorNote message={errMsg(send.error)} />}
           <button type="submit" className={`${btnPrimary} w-full`} disabled={send.isPending || !/.+@.+\..+/.test(email)}>
-            {send.isPending ? "Sending…" : "Email me a sign-in link"}
+            {send.isPending ? "Sending…" : "Email me a 6-digit code"}
           </button>
         </form>
       ) : (
         <div className="mt-2 text-sm space-y-3">
           <p role="status">
-            Check <strong>{email}</strong> and tap the link to sign in on this device. It can take a minute — check spam too.
+            Check your email for a 6-digit code. We sent it to <strong>{email}</strong>. It can take a minute — check spam too.
+          </p>
+          <p className="text-charcoal/80">
+            Enter the code here so you stay signed in on this app (including if you added it to your home screen). Tapping a link in the email can open a different browser.
           </p>
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              verify.mutate();
+              if (code.length === 6) verify.mutate(code);
             }}
           >
-            <Field label="Or enter the 6-digit code from the email">
-              <input className={inputCls} inputMode="numeric" autoComplete="one-time-code" maxLength={10} value={code} onChange={(e) => setCode(e.target.value)} />
+            <Field label="6-digit code">
+              <input
+                className={`${inputCls} tracking-[0.4em] text-center text-lg font-semibold`}
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                pattern="[0-9]*"
+                maxLength={6}
+                name="otp"
+                id="otp"
+                value={code}
+                onChange={(e) => onCode(e.target.value)}
+                aria-label="6-digit sign-in code"
+              />
             </Field>
             {verify.error && <ErrorNote message={errMsg(verify.error)} />}
             <div className="flex gap-2 flex-wrap">
-              <button type="submit" className={btnNavy} disabled={code.trim().length < 6 || verify.isPending}>Sign in with code</button>
-              <button type="button" className={btnGhost} onClick={() => setSent(false)}>Use a different email</button>
+              <button type="submit" className={btnNavy} disabled={code.length < 6 || verify.isPending}>{verify.isPending ? "Signing in…" : "Sign in with code"}</button>
+              <button type="button" className={btnGhost} onClick={() => { setSent(false); setCode(""); }}>Use a different email</button>
             </div>
           </form>
         </div>
@@ -586,7 +607,7 @@ export function NewJobForm({ requestId }: { requestId?: string }) {
         <Field label="Job address"><input className={inputCls} value={f.address} onChange={set("address")} /></Field>
         <Field label="Service(s)"><input className={inputCls} value={f.service} onChange={set("service")} /></Field>
         <Field label="Estimate number"><input className={inputCls} value={f.estimate_no} onChange={set("estimate_no")} /></Field>
-        <label className="flex gap-3 items-center min-h-11 text-sm"><input type="checkbox" className="w-5 h-5" checked={invite} onChange={(e) => setInvite(e.target.checked)} /> Email the client a sign-in link now</label>
+        <label className="flex gap-3 items-center min-h-11 text-sm"><input type="checkbox" className="w-5 h-5" checked={invite} onChange={(e) => setInvite(e.target.checked)} /> Email the client a 6-digit sign-in code now</label>
         {m.error && <ErrorNote message={errMsg(m.error)} />}
         {note && <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded p-3 my-2" role="alert">{note}</p>}
         <button type="submit" className={`${btnPrimary} w-full mt-2`} disabled={m.isPending}>{m.isPending ? "Creating…" : "Create job"}</button>

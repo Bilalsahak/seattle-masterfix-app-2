@@ -121,8 +121,8 @@ export function HomeTab({
 
       <section aria-label="Why homeowners trust us" className="bg-navy text-white rounded-lg mt-4 px-4 py-3">
         <ul className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm font-medium">
-          <li className="flex items-center gap-2"><span className="text-bronze"><Icon d={I.shield} size={20} /></span> Licensed &amp; insured · WA Reg. {COMPANY.waReg}</li>
-          <li className="flex items-center gap-2"><span className="text-bronze"><Icon d={I.star} size={20} /></span> 5.0 rating on Google</li>
+          <li className="flex items-center gap-2"><span className="text-bronze"><Icon d={I.shield} size={20} /></span> Licensed · WA Reg. {COMPANY.waReg}</li>
+          <li className="flex items-center gap-2"><span className="text-bronze"><Icon d={I.check} size={20} /></span> Free written estimates</li>
           <li className="flex items-center gap-2"><span className="text-bronze"><Icon d={I.check} size={20} /></span> 1-year labor warranty</li>
         </ul>
       </section>
@@ -168,13 +168,8 @@ export function HomeTab({
       </p>
 
       <SectionTitle>Reviews</SectionTitle>
-      <div className="rounded-lg border border-[var(--border)] bg-white p-4 flex flex-wrap items-center gap-3">
-        <p className="text-3xl font-bold text-navy">5.0</p>
-        <div>
-          <p className="text-[#8a5a17] font-semibold" aria-label="Rated 5 out of 5 stars">★★★★★</p>
-          <p className="text-sm text-charcoal/75">On Google — Seattle MasterFix Precision Craftsmanship</p>
-        </div>
-        <a className="ml-auto font-semibold text-navy underline underline-offset-2 min-h-11 inline-flex items-center" href={COMPANY.googleReviewUrl} target="_blank" rel="noreferrer">
+      <div className="rounded-lg border border-[var(--border)] bg-white p-4">
+        <a className="font-semibold text-navy underline underline-offset-2 min-h-11 inline-flex items-center" href={COMPANY.googleReviewUrl} target="_blank" rel="noreferrer">
           Read &amp; write reviews on Google
         </a>
       </div>
@@ -770,7 +765,16 @@ export function MoreTab({ isOffice, signedIn, onOffice, onEstimate, onSignOut }:
               <span aria-hidden="true">{openFaq === i ? "−" : "+"}</span>
             </button>
             <div className={`faq-panel ${openFaq === i ? "faq-panel-open" : ""}`} aria-hidden={openFaq !== i}>
-              <div><p className="px-4 pb-4 text-charcoal/85">{f.a}</p></div>
+              <div className="px-4 pb-4 text-charcoal/85">
+                <p>{f.a}</p>
+                {f.link && (
+                  <p className="mt-2">
+                    <a className="font-semibold text-navy underline underline-offset-2" href={f.link.href} target="_blank" rel="noreferrer">
+                      {f.link.label}
+                    </a>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         ))}

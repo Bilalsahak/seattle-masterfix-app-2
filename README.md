@@ -17,6 +17,13 @@ Clients can browse all the website info in the app, request an estimate, and tra
 
 Formal corporate / big-GC style, matching the website and estimates: ink navy `#14293F`, bronze `#D79A43` / `#C79248`, bronze light `#F0C785`, cream `#F7F0E3`, charcoal `#1C242E`.
 
+## ⚠️ Security warning about `server/` and `client/` (Muse version)
+
+The Muse code in `server/` and `client/` has **no login and no access checks**: anyone who can reach it could read
+every client's name, phone, address, job, payments, and messages, and change them. **Do not deploy it.**
+The live app is `web/` with the Supabase backend in `supabase/` (logins + Row Level Security).
+Recommendation: delete `server/`, `client/`, and `drizzle/` once the Supabase version is approved.
+
 ## How this repo was built
 
 This is the source snapshot of the app built in Muse from the **Seattle MasterFix App — Design & Build Guideline v1.0 (Nov 17, 2026)**. It is a Muse TypeScript space: a React client in `client/`, server actions in `server/src/actions.ts`, the data model in `server/src/schema.ts`, and Drizzle SQL migrations in `drizzle/`.

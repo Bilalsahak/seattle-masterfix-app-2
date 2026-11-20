@@ -6,4 +6,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   base: "/seattle-masterfix-app-2/",
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: { output: { manualChunks: { supabase: ["@supabase/supabase-js"], react: ["react", "react-dom", "@tanstack/react-query"] } } },
+  },
 });

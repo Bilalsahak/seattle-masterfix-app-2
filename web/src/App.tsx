@@ -385,7 +385,7 @@ function HeroSlider({ onEstimate, onTrack }: { onEstimate: () => void; onTrack: 
           </div>
         ))}
         <div className="absolute inset-0 bg-gradient-to-t from-navy/90 via-navy/35 to-transparent" aria-hidden="true" />
-        <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-6 max-w-5xl mx-auto w-full">
+        <div className="absolute inset-0 flex flex-col justify-end px-14 sm:px-16 py-4 sm:py-6 max-w-5xl mx-auto w-full">
           <p key={`cap-${index}`} className="anim-fade-slide text-bronze-light text-xs font-bold tracking-[0.18em] uppercase">
             {slide.caption}
           </p>

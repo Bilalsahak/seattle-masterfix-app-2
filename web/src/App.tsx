@@ -12,8 +12,9 @@ SERVICE_AREA,
 type ProjectPhoto,
 } from "./content";
 import heroImg from "./assets/hero.jpg";
-import logoImg from "./assets/logo.svg";
-import logoOnNavyImg from "./assets/logo-on-navy.svg";
+import logoImg from "./assets/logo-mark.png";
+import logoOnNavyImg from "./assets/logo-mark.png";
+import logoFullImg from "./assets/logo.png";
 
 type Job = ApiResponse<typeof api, "listJobs">["jobs"][number];
 type JobDetail = NonNullable<ApiResponse<typeof api, "getJob">["detail"]>;
@@ -1905,6 +1906,7 @@ function MoreTab({ onOffice, onEstimate }: { onOffice: () => void; onEstimate: (
 
       <SectionTitle>About Seattle MasterFix</SectionTitle>
       <div className="rounded-lg border border-[var(--border)] bg-white p-4 space-y-2">
+        <img src={logoFullImg} alt="Seattle MasterFix — Precision Craftsmanship" className="w-full rounded-lg" />
         <div className="flex items-center gap-3 pb-1">
           <img src={logoOnNavyImg} alt="Seattle MasterFix logo" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
           <div>

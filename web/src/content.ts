@@ -28,6 +28,8 @@ export const COMPANY = {
   ],
   replyNote: "We usually reply within 1 hour during business hours.",
   googleReviewUrl: "https://share.google/nP2m5EEOoNouPY9bX",
+  lniVerifyUrl:
+    "https://secure.lni.wa.gov/verify/Detail.aspx?UBI=605904953&LIC=SEATTMP744NL&SAW=",
   directionsUrl:
     "https://www.google.com/maps/search/?api=1&query=5415+6th+Ave+NW+Seattle+WA+98107",
 };
@@ -277,10 +279,11 @@ export const SERVICE_AREA = {
   note: "Ballard, Greenwood, Ravenna, and North Seattle are our home turf. If your ZIP is outside King County, send the request anyway — we will tell you honestly whether we can take the job.",
 };
 
-export const FAQS: { q: string; a: string }[] = [
+export const FAQS: { q: string; a: string; link?: { href: string; label: string } }[] = [
   {
-    q: "Are you licensed and insured?",
-    a: `Yes. Seattle MasterFix is a licensed Washington contractor, WA Reg. ${COMPANY.waReg}, UBI ${COMPANY.ubi}. You can verify our registration with Washington L&I.`,
+    q: "Are you licensed?",
+    a: `Yes. Seattle MasterFix is a licensed Washington contractor, WA Reg. ${COMPANY.waReg}, UBI ${COMPANY.ubi}.`,
+    link: { href: COMPANY.lniVerifyUrl, label: "Verify our license with Washington L&I" },
   },
   {
     q: "How does pricing work?",

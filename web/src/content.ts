@@ -3,14 +3,14 @@
 // No fixed prices anywhere: the final price always comes from the written
 // estimate, per the guideline.
 
-import heroImg from "./assets/hero.svg";
-import sidingImg from "./assets/siding.svg";
-import fencingImg from "./assets/fencing.svg";
-import tileImg from "./assets/tile.svg";
-import flooringImg from "./assets/flooring.svg";
-import drywallImg from "./assets/drywall.svg";
-import paintImg from "./assets/paint.svg";
-import remodelImg from "./assets/remodel.svg";
+import heroImg from "./assets/hero.jpg";
+import sidingImg from "./assets/siding.jpg";
+import fencingImg from "./assets/fencing.jpg";
+import tileImg from "./assets/tile.jpg";
+import flooringImg from "./assets/flooring.jpg";
+import drywallImg from "./assets/drywall.jpg";
+import paintImg from "./assets/paint.jpg";
+import remodelImg from "./assets/remodel.jpg";
 
 export const COMPANY = {
   name: "Seattle MasterFix",

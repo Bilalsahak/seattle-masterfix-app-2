@@ -7,7 +7,13 @@ export const SUPABASE_URL = "https://nswoksixspogizntqyqv.supabase.co";
 export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_T3YVpIBQA3vBuJI1xatsnw_VOGnuxnw";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" },
+  auth: {
+    persistSession: true, // keeps the login in this app (including the home-screen app)
+    storage: typeof window !== "undefined" ? window.localStorage : undefined,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: "implicit",
+  },
 });
 
 /** Where magic links send people back to (this app's own address). */

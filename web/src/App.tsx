@@ -311,7 +311,7 @@ export function App() {
       <footer className="mx-auto max-w-5xl px-4 mt-10 pb-4 text-sm text-charcoal/70">
         <div className="border-t border-bronze/40 pt-4">
           <div className="flex items-center gap-3">
-            <img src={logoOnNavyImg} alt="Seattle MasterFix logo" className="h-12 w-12 shrink-0 rounded-lg object-contain bg-navy p-1" />
+            <img src={logoOnNavyImg} alt="Seattle MasterFix logo" className="h-12 w-12 shrink-0 rounded-lg object-contain bg-navy p-2" />
             <p className="font-semibold text-navy">{COMPANY.name} — {COMPANY.tagline}</p>
           </div>
           <p>{COMPANY.address} · {COMPANY.phoneDisplay}</p>
@@ -804,6 +804,11 @@ function EstimateWizard({ onDone, onCancel }: { onDone: () => void; onCancel: ()
           {submitted.formspreeOk === false && (
             <p className="text-sm font-medium text-red-800 bg-red-50 border border-red-200 rounded-lg p-3 mt-4" role="alert">
               Saved in the app, but the email to our office did not go through — please call us at {COMPANY.phoneDisplay} so we do not miss it.
+            </p>
+          )}
+          {photos.length > 0 && (
+            <p className="text-sm text-charcoal/70 mt-3">
+              Your {photos.length} photo{photos.length === 1 ? "" : "s"} could not be emailed with this request — please email them to {COMPANY.email} with reference {submitted.reference}.
             </p>
           )}
           <p className="text-sm text-charcoal/70 mt-4">
@@ -1914,7 +1919,7 @@ function MoreTab({ onOffice, onEstimate }: { onOffice: () => void; onEstimate: (
       <div className="rounded-lg border border-[var(--border)] bg-white p-4 space-y-2">
         <img src={logoFullImg} alt="Seattle MasterFix — Precision Craftsmanship" className="w-full h-auto rounded-lg object-contain bg-navy p-3" />
         <div className="flex items-center gap-3 pb-1">
-          <img src={logoOnNavyImg} alt="Seattle MasterFix logo" className="h-14 w-14 shrink-0 rounded-lg object-contain bg-navy p-1" />
+          <img src={logoOnNavyImg} alt="Seattle MasterFix logo" className="h-14 w-14 shrink-0 rounded-lg object-contain bg-navy p-2" />
           <div>
             <p className="font-bold text-navy leading-tight">SEATTLE <span className="text-bronze-dark">MASTERFIX</span></p>
             <p className="text-[11px] tracking-[0.2em] text-charcoal/60">PRECISION CRAFTSMANSHIP</p>
@@ -2012,6 +2017,27 @@ function MoreTab({ onOffice, onEstimate }: { onOffice: () => void; onEstimate: (
 }
 
 // ---------- Office ----------
+function ResendButton({ requestId }: { requestId: number }) {
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  return (
+    <button
+      type="button"
+      className={btnGhost}
+      disabled={state === "sending"}
+      onClick={async () => {
+        setState("sending");
+        const res = await api.resendEstimateRequest({ id: requestId });
+        setState(res.ok ? "sent" : "failed");
+      }}
+    >
+      {state === "idle" && "Email to office"}
+      {state === "sending" && "Emailing…"}
+      {state === "sent" && "Emailed ✓"}
+      {state === "failed" && "Email failed — try again"}
+    </button>
+  );
+}
+
 function Office({ onOpenJob, onNewJob, onBack }: { onOpenJob: (id: number) => void; onNewJob: (requestId?: number) => void; onBack: () => void }) {
   const queryClient = useQueryClient();
   const reqQ = useQuery({ queryKey: ["requests"], queryFn: () => api.listEstimateRequests({ limit: 50 }) });
@@ -2097,6 +2123,7 @@ type RequestStatus = "received" | "visit_scheduled" | "estimate_sent" | "approve
                   <button type="button" className={btnNavy} disabled={convert.isPending} onClick={() => convert.mutate(r.id)}>
                     Create tracked job
                   </button>
+                  <ResendButton requestId={r.id} />
                 </div>
               )}
               {r.status === "converted" && r.job_id !== null && (

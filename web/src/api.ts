@@ -264,8 +264,15 @@ async function sendToFormspree(args: {
       pageUrl: typeof window !== "undefined" ? window.location.href : "",
     };
     for (const [key, value] of Object.entries(fields)) payload.append(key, value);
-    for (const file of args.photos.slice(0, 5)) {
-      if (file.size <= 25 * 1024 * 1024) payload.append("photos", file);
+    // DO NOT attach files: this Formspree plan rejects file uploads with
+    // HTTP 400 "File Uploads Not Permitted", which kills the WHOLE submission
+    // (verified 2026-11-20). Send the text only, and note the photos so the
+    // office knows to ask for them by email.
+    if (args.photo_count > 0) {
+      payload.append(
+        "photos",
+        `${args.photo_count} photo(s) were attached in the app but could not be emailed — Formspree does not accept file uploads on this plan. Ask the client to email them to Bill@seattlemasterfix.com with reference ${args.reference}.`
+      );
     }
     const res = await fetch(FORMSPREE_ENDPOINT, {
       method: "POST",
@@ -329,6 +336,34 @@ export const api = {
     // failure never loses the request — it is reported to the user instead.
     const formspreeOk = await sendToFormspree({ ...args, reference, photos: args.photos ?? [] });
     return { id, reference, formspree_ok: formspreeOk };
+  },
+
+  // Re-send a saved request to the office by email (text-only Formspree).
+  // Used from Office tools when an earlier send failed.
+  async resendEstimateRequest(args: { id: number }): Promise<{ ok: boolean }> {
+    const store = load();
+    const r = store.requests.find((x) => x.id === args.id);
+    if (!r) return { ok: false };
+    const ok = await sendToFormspree({
+      reference: `SMF-REQ-${r.id}`,
+      name: r.name,
+      phone: r.phone,
+      email: r.email,
+      preferred_contact: r.preferred_contact,
+      services: r.services,
+      property_type: r.property_type,
+      address: r.address,
+      zip: r.zip,
+      description: r.description,
+      areas: r.areas,
+      approx_size: r.approx_size,
+      timing: r.timing,
+      heard_about: r.heard_about,
+      visit_times: r.visit_times,
+      photo_count: r.photo_count,
+      photos: [],
+    });
+    return { ok };
   },
 
   async listEstimateRequests(args: { limit: number }): Promise<{ requests: EstimateRequest[] }> {
